@@ -3,7 +3,7 @@
 
 #import <ModelIO/ModelIO.h>
 
-static id<MTLTexture> _Nullable TextureFromImage(NSString *imageName, id<MTLDevice> device, NSError **error) {
+static id<MTLTexture> _Nullable CreateTextureFromImage(NSString *imageName, id<MTLDevice> device, NSError **error) {
     MTKTextureLoader *textureLoader = [[MTKTextureLoader alloc] initWithDevice:device];
     NSURL *imageURL = [[NSBundle mainBundle] URLForResource:imageName withExtension:nil];
     CGImageSourceRef imageSource = CGImageSourceCreateWithURL((__bridge CFURLRef)imageURL, NULL);
@@ -39,7 +39,7 @@ TexturedMesh::TexturedMesh() = default;
 TexturedMesh::TexturedMesh(MDLMesh *mdlMesh, NSString *imageName, id<MTLDevice> device) {
     NSError *error = nil;
 
-    _texture = TextureFromImage(imageName, device, &error);
+    _texture = CreateTextureFromImage(imageName, device, &error);
 
     MDLVertexDescriptor *mdlVertexDescriptor = [MDLVertexDescriptor new];
     mdlVertexDescriptor.attributes[0].name = MDLVertexAttributePosition;
@@ -84,7 +84,7 @@ SpatialEnvironmentMesh::SpatialEnvironmentMesh(NSString *imageName, CGFloat radi
     TexturedMesh()
 {
     NSError *error = nil;
-    _texture = TextureFromImage(imageName, device, &error);
+    _texture = CreateTextureFromImage(imageName, device, &error);
 
     _environmentRotation = matrix_identity_float4x4;
 

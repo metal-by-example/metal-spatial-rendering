@@ -29,7 +29,7 @@ public:
     }
 
     void runLoop() {
-        while (_running)
+        while (_running) {
             @autoreleasepool {
                 switch (cp_layer_renderer_get_state(_layerRenderer)) {
                     case cp_layer_renderer_state_paused:
@@ -46,6 +46,7 @@ public:
                         break;
                 }
             }
+        }
     }
 
     void renderFrame() {
