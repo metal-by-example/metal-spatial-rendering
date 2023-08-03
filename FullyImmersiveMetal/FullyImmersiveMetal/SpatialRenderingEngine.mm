@@ -25,7 +25,7 @@ public:
     }
 
     ~SpatialRenderingEngine() {
-        ar_session_stop_all_data_providers(_arSession);
+        ar_session_stop(_arSession);
     }
 
     void runLoop() {
@@ -89,7 +89,7 @@ private:
         ar_world_tracking_configuration_t worldTrackingConfiguration = ar_world_tracking_configuration_create();
         _worldTrackingProvider = ar_world_tracking_provider_create(worldTrackingConfiguration);
 
-        ar_data_providers_t dataProviders = ar_data_providers_create_with_providers(_worldTrackingProvider, nil);
+        ar_data_providers_t dataProviders = ar_data_providers_create_with_data_providers(_worldTrackingProvider, nil);
 
         _arSession = ar_session_create();
         ar_session_run(_arSession, dataProviders);
