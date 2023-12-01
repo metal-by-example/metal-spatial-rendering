@@ -141,8 +141,9 @@ MTLRenderPassDescriptor* SpatialRenderer::createRenderPassDescriptor(cp_drawable
 PoseConstants SpatialRenderer::poseConstantsForViewIndex(cp_drawable_t drawable, size_t index) {
     PoseConstants outPose;
 
-    ar_pose_t arPose = cp_drawable_get_ar_pose(drawable);
-    simd_float4x4 poseTransform = ar_pose_get_origin_from_device_transform(arPose);
+    ar_device_anchor_t anchor = cp_drawable_get_device_anchor(drawable);
+
+    simd_float4x4 poseTransform = ar_anchor_get_origin_from_anchor_transform(anchor);
 
     cp_view_t view = cp_drawable_get_view(drawable, index);
     simd_float4 tangents = cp_view_get_tangents(view);

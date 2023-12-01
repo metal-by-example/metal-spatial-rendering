@@ -76,8 +76,8 @@ public:
         }
 
         cp_frame_timing_t actualTiming = cp_drawable_get_frame_timing(drawable);
-        ar_pose_t pose = createPoseForTiming(actualTiming);
-        cp_drawable_set_ar_pose(drawable, pose);
+        ar_device_anchor_t anchor = createPoseForTiming(actualTiming);
+        cp_drawable_set_device_anchor(drawable, anchor);
 
         _renderer->drawAndPresent(frame, drawable);
 
@@ -95,15 +95,15 @@ private:
         ar_session_run(_arSession, dataProviders);
     }
 
-    ar_pose_t createPoseForTiming(cp_frame_timing_t timing) {
-        ar_pose_t outPose = ar_pose_create();
+    ar_device_anchor_t createPoseForTiming(cp_frame_timing_t timing) {
+        ar_device_anchor_t outAnchor = ar_device_anchor_create();
         cp_time_t presentationTime = cp_frame_timing_get_presentation_time(timing);
         CFTimeInterval queryTime = cp_time_to_cf_time_interval(presentationTime);
-        ar_pose_status_t status = ar_world_tracking_provider_query_pose_at_timestamp(_worldTrackingProvider, queryTime, outPose);
-        if (status != ar_pose_status_success) {
+        ar_device_anchor_query_status_t status = ar_world_tracking_provider_query_device_anchor_at_timestamp(_worldTrackingProvider, queryTime, outAnchor);
+        if (status != ar_device_anchor_query_status_success) {
             NSLog(@"Failed to get estimated pose from world tracking provider for presentation timestamp %0.3f", queryTime);
         }
-        return outPose;
+        return outAnchor;
     }
 
     ar_session_t _arSession;
