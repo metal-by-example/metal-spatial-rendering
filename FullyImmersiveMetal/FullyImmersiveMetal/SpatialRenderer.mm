@@ -20,7 +20,7 @@ SpatialRenderer::SpatialRenderer(cp_layer_renderer_t layerRenderer) :
     _sceneTime(0.0),
     _lastRenderTime(CACurrentMediaTime())
 {
-    _device = MTLCreateSystemDefaultDevice();
+    _device = cp_layer_renderer_get_device(layerRenderer);
     _commandQueue = [_device newCommandQueue];
 
     makeResources();
