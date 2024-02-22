@@ -132,7 +132,6 @@ MTLRenderPassDescriptor* SpatialRenderer::createRenderPassDescriptor(cp_drawable
     passDescriptor.depthAttachment.texture = cp_drawable_get_depth_texture(drawable, index);
     passDescriptor.depthAttachment.storeAction = MTLStoreActionStore;
 
-    passDescriptor.renderTargetArrayLength = cp_drawable_get_view_count(drawable);
     passDescriptor.rasterizationRateMap = cp_drawable_get_rasterization_rate_map(drawable, index);
 
     return passDescriptor;
