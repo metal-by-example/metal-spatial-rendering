@@ -12,6 +12,8 @@ struct VertexOut {
     float4 position [[position]];
     float3 modelNormal;
     float2 texCoords;
+    uint layer [[ render_target_array_index ]];
+    uint viewport [[ viewport_array_index ]];
 };
 
 struct PoseConstants {
@@ -26,13 +28,19 @@ struct EnvironmentConstants {
 
 [[vertex]]
 VertexOut vertex_environment(VertexIn in [[stage_in]],
-                             constant PoseConstants &pose [[buffer(1)]],
-                             constant EnvironmentConstants &environment [[buffer(2)]])
+                             constant PoseConstants *poses [[buffer(1)]],
+                             constant EnvironmentConstants &environment [[buffer(2)]],
+                             const uint instance_id [[ instance_id ]])
 {
     VertexOut out;
+    
+    const constant auto& pose = poses[instance_id];
+    
     out.position = pose.projectionMatrix * pose.viewMatrix * float4(in.position, 1.0f);
     out.modelNormal = -in.normal;
     out.texCoords = in.texCoords;
+    out.layer = instance_id;
+    out.viewport = instance_id;
     return out;
 }
 

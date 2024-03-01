@@ -15,8 +15,9 @@ public:
 
 private:
     void makeResources();
-    void makeRenderPipelines(cp_layer_renderer_layout layout);
+    void makeRenderPipelines();
     MTLRenderPassDescriptor* createRenderPassDescriptor(cp_drawable_t drawable, size_t index);
+    MTLViewport viewportForViewIndex(cp_drawable_t drawable, size_t index);
     PoseConstants poseConstantsForViewIndex(cp_drawable_t drawable, size_t index);
 
     id<MTLDevice> _device;
@@ -26,6 +27,7 @@ private:
     id<MTLDepthStencilState> _contentDepthStencilState;
     id<MTLDepthStencilState> _backgroundDepthStencilState;
     cp_layer_renderer_t _layerRenderer;
+    cp_layer_renderer_layout _layerRendererLayout;
     std::unique_ptr<TexturedMesh> _globeMesh;
     std::unique_ptr<SpatialEnvironmentMesh> _environmentMesh;
     CFTimeInterval _sceneTime;
