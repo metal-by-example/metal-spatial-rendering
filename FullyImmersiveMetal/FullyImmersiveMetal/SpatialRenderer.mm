@@ -8,6 +8,8 @@
 #import <MetalKit/MetalKit.h>
 #import <Spatial/Spatial.h>
 
+#include <vector>
+
 static simd_float4x4 matrix_float4x4_from_double4x4(simd_double4x4 m) {
     return simd_matrix(simd_make_float4(m.columns[0][0], m.columns[0][1], m.columns[0][2], m.columns[0][3]),
                        simd_make_float4(m.columns[1][0], m.columns[1][1], m.columns[1][2], m.columns[1][3]),
@@ -26,8 +28,8 @@ SpatialRenderer::SpatialRenderer(cp_layer_renderer_t layerRenderer) :
     makeResources();
 
     cp_layer_renderer_configuration_t layerConfiguration = cp_layer_renderer_get_configuration(layerRenderer);
-    cp_layer_renderer_layout layout = cp_layer_renderer_configuration_get_layout(layerConfiguration);
-    makeRenderPipelines(layout);
+    _layerRendererLayout = cp_layer_renderer_configuration_get_layout(layerConfiguration);
+    makeRenderPipelines();
 }
 
 void SpatialRenderer::makeResources() {
@@ -44,7 +46,7 @@ void SpatialRenderer::makeResources() {
     _environmentMesh = std::make_unique<SpatialEnvironmentMesh>(@"studio.hdr", 3.0, _device);
 }
 
-void SpatialRenderer::makeRenderPipelines(cp_layer_renderer_layout layout) {
+void SpatialRenderer::makeRenderPipelines() {
     NSError *error = nil;
     cp_layer_renderer_configuration_t layerConfiguration = cp_layer_renderer_get_configuration(_layerRenderer);
     
@@ -61,6 +63,8 @@ void SpatialRenderer::makeRenderPipelines(cp_layer_renderer_layout layout) {
         pipelineDescriptor.vertexFunction = vertexFunction;
         pipelineDescriptor.fragmentFunction = fragmentFunction;
         pipelineDescriptor.vertexDescriptor = _globeMesh->vertexDescriptor();
+        pipelineDescriptor.inputPrimitiveTopology = MTLPrimitiveTopologyClassTriangle;
+        
         _contentRenderPipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
     }
     {
@@ -69,6 +73,8 @@ void SpatialRenderer::makeRenderPipelines(cp_layer_renderer_layout layout) {
         pipelineDescriptor.vertexFunction = vertexFunction;
         pipelineDescriptor.fragmentFunction = fragmentFunction;
         pipelineDescriptor.vertexDescriptor = _environmentMesh->vertexDescriptor();
+        pipelineDescriptor.inputPrimitiveTopology = MTLPrimitiveTopologyClassTriangle;
+        
         _environmentRenderPipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
     }
     
@@ -96,24 +102,81 @@ void SpatialRenderer::drawAndPresent(cp_frame_t frame, cp_drawable_t drawable) {
     _globeMesh->setModelMatrix(modelTransform);
 
     id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+    
+    size_t viewCount = cp_drawable_get_view_count(drawable);
+    
+    std::vector<MTLViewport> viewports;
+    viewports.reserve(viewCount);
+    
+    std::vector<PoseConstants> poseConstants;
+    poseConstants.reserve(viewCount);
+    
+    std::vector<PoseConstants> poseConstantsForEnvironment;
+    poseConstantsForEnvironment.resize(viewCount);
+    
+    LayerConstants layerConstants;
+    
+    for (int i = 0; i < viewCount; ++i) {
+        viewports[i] = viewportForViewIndex(drawable, i);
+        
+        poseConstants[i] = poseConstantsForViewIndex(drawable, i);
+        
+        poseConstantsForEnvironment[i] = poseConstantsForViewIndex(drawable, i);
+        // Remove the translational part of the view matrix to make the environment stay "infinitely" far away
+        poseConstantsForEnvironment[i].viewMatrix.columns[3] = simd_make_float4(0.0, 0.0, 0.0, 1.0);
+    }
+    
+    if (_layerRendererLayout == cp_layer_renderer_layout_dedicated) {
+        layerConstants.layerCount = 1;
+        layerConstants.viewportCount = 1;
+        
+        for (int i = 0; i < viewCount; ++i) {
+            MTLRenderPassDescriptor *renderPassDescriptor = createRenderPassDescriptor(drawable, i);
+            id<MTLRenderCommandEncoder> renderCommandEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
+            
+            [renderCommandEncoder setCullMode:MTLCullModeBack];
 
-    for (int i = 0; i < cp_drawable_get_view_count(drawable); ++i) {
-        MTLRenderPassDescriptor *renderPassDescriptor = createRenderPassDescriptor(drawable, i);
+            [renderCommandEncoder setFrontFacingWinding:MTLWindingClockwise];
+            [renderCommandEncoder setDepthStencilState:_backgroundDepthStencilState];
+            [renderCommandEncoder setRenderPipelineState:_environmentRenderPipelineState];
+            _environmentMesh->draw(renderCommandEncoder, &poseConstantsForEnvironment[i], &layerConstants, 1);
+            
+            [renderCommandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
+            [renderCommandEncoder setDepthStencilState:_contentDepthStencilState];
+            [renderCommandEncoder setRenderPipelineState:_contentRenderPipelineState];
+            _globeMesh->draw(renderCommandEncoder, &poseConstants[i], &layerConstants, 1);
+            
+            [renderCommandEncoder endEncoding];
+        }
+    }
+    else {
+        if (_layerRendererLayout == cp_layer_renderer_layout_layered) {
+            layerConstants.layerCount = (unsigned)viewCount;
+            layerConstants.viewportCount = 1;
+        }
+        else if (_layerRendererLayout == cp_layer_renderer_layout_shared) {
+            layerConstants.layerCount = 1;
+            layerConstants.viewportCount = (unsigned)viewCount;
+        }
+        
+        MTLRenderPassDescriptor *renderPassDescriptor = createRenderPassDescriptor(drawable, 0);
         id<MTLRenderCommandEncoder> renderCommandEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
         
-        [renderCommandEncoder setCullMode:MTLCullModeBack];
+        if (_layerRendererLayout == cp_layer_renderer_layout_shared) {
+            [renderCommandEncoder setViewports: &viewports[0] count: layerConstants.viewportCount];
+        }
         
-        PoseConstants poseConstants = poseConstantsForViewIndex(drawable, i);
+        [renderCommandEncoder setCullMode:MTLCullModeBack];
 
         [renderCommandEncoder setFrontFacingWinding:MTLWindingClockwise];
         [renderCommandEncoder setDepthStencilState:_backgroundDepthStencilState];
         [renderCommandEncoder setRenderPipelineState:_environmentRenderPipelineState];
-        _environmentMesh->draw(renderCommandEncoder, poseConstants);
+        _environmentMesh->draw(renderCommandEncoder, &poseConstantsForEnvironment[0], &layerConstants, viewCount);
         
         [renderCommandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
         [renderCommandEncoder setDepthStencilState:_contentDepthStencilState];
         [renderCommandEncoder setRenderPipelineState:_contentRenderPipelineState];
-        _globeMesh->draw(renderCommandEncoder, poseConstants);
+        _globeMesh->draw(renderCommandEncoder, &poseConstants[0], &layerConstants, viewCount);
         
         [renderCommandEncoder endEncoding];
     }
@@ -132,9 +195,22 @@ MTLRenderPassDescriptor* SpatialRenderer::createRenderPassDescriptor(cp_drawable
     passDescriptor.depthAttachment.texture = cp_drawable_get_depth_texture(drawable, index);
     passDescriptor.depthAttachment.storeAction = MTLStoreActionStore;
 
+    if (_layerRendererLayout == cp_layer_renderer_layout_layered) {
+        passDescriptor.renderTargetArrayLength = cp_drawable_get_view_count(drawable);
+    }
+    else {
+        passDescriptor.renderTargetArrayLength = 1;
+    }
+    
     passDescriptor.rasterizationRateMap = cp_drawable_get_rasterization_rate_map(drawable, index);
 
     return passDescriptor;
+}
+
+MTLViewport SpatialRenderer::viewportForViewIndex(cp_drawable_t drawable, size_t index) {
+    cp_view_t view = cp_drawable_get_view(drawable, index);
+    cp_view_texture_map_t texture_map = cp_view_get_view_texture_map(view);
+    return cp_view_texture_map_get_viewport(texture_map);
 }
 
 PoseConstants SpatialRenderer::poseConstantsForViewIndex(cp_drawable_t drawable, size_t index) {
