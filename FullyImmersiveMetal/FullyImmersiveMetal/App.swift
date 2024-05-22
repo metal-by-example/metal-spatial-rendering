@@ -7,6 +7,9 @@ struct MetalLayerConfiguration: CompositorLayerConfiguration {
     {
         let supportsFoveation = capabilities.supportsFoveation
         //let supportedLayouts = capabilities.supportedLayouts(options: supportsFoveation ? [.foveationEnabled] : [])
+        
+        // The device supports the `dedicated` and `layered` layouts.
+        // The simulator supports the `dedicated` and `shared` layouts.
         configuration.layout = .dedicated
         configuration.isFoveationEnabled = supportsFoveation
         configuration.colorFormat = .rgba16Float
