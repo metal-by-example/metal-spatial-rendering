@@ -6,11 +6,11 @@ struct MetalLayerConfiguration: CompositorLayerConfiguration {
                            configuration: inout LayerRenderer.Configuration)
     {
         let supportsFoveation = capabilities.supportsFoveation
-        //let supportedLayouts = capabilities.supportedLayouts(options: supportsFoveation ? [.foveationEnabled] : [])
+        let supportedLayouts = capabilities.supportedLayouts(options: supportsFoveation ? [.foveationEnabled] : [])
         
         // The device supports the `dedicated` and `layered` layouts.
         // The simulator supports the `dedicated` and `shared` layouts.
-        configuration.layout = .dedicated
+        configuration.layout = supportedLayouts.contains(.layered) ? .layered : .dedicated
         configuration.isFoveationEnabled = supportsFoveation
         configuration.colorFormat = .rgba16Float
     }
