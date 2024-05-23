@@ -22,6 +22,7 @@ struct FullyImmersiveMetalApp: App {
         WindowGroup {
             ContentView()
         }
+        .windowResizability(.contentSize)
 
         ImmersiveSpace(id: "ImmersiveSpace") {
             CompositorLayer(configuration: MetalLayerConfiguration()) { layerRenderer in

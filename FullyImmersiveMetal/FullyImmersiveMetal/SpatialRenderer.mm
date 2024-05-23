@@ -93,12 +93,18 @@ void SpatialRenderer::drawAndPresent(cp_frame_t frame, cp_drawable_t drawable) {
     CFTimeInterval timestep = MIN(renderTime - _lastRenderTime, 1.0 / 60.0);
     _sceneTime += timestep;
 
+#if TARGET_OS_SIMULATOR
+    const float estimatedHeadHeight = 0.0;
+#else
+    const float estimatedHeadHeight = 1.25;
+#endif
+
     float c = cos(_sceneTime * 0.5f);
     float s = sin(_sceneTime * 0.5f);
     simd_float4x4 modelTransform = simd_matrix(simd_make_float4(   c, 0.0f,    -s, 0.0f),
                                                simd_make_float4(0.0f, 1.0f,  0.0f, 0.0f),
                                                simd_make_float4(   s, 0.0f,     c, 0.0f),
-                                               simd_make_float4(0.0f, 0.0f, -1.5f, 1.0f));
+                                               simd_make_float4(0.0f, estimatedHeadHeight, -1.5f, 1.0f));
     _globeMesh->setModelMatrix(modelTransform);
 
     id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
