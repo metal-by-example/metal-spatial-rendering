@@ -26,7 +26,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		830175AA2A44AC87008CAD8B /* FullyImmersiveMetal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FullyImmersiveMetal.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		830175AA2A44AC87008CAD8B /* ImmersiveMetal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ImmersiveMetal.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		830175B12A44AC87008CAD8B /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
 		830175B32A44AC87008CAD8B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		830175B92A44AC87008CAD8B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -70,7 +70,7 @@
 		830175A12A44AC87008CAD8B = {
 			isa = PBXGroup;
 			children = (
-				830175AC2A44AC87008CAD8B /* FullyImmersiveMetal */,
+				830175AC2A44AC87008CAD8B /* ImmersiveMetal */,
 				830175AB2A44AC87008CAD8B /* Products */,
 				830175C72A44BE8C008CAD8B /* Frameworks */,
 			);
@@ -79,12 +79,12 @@
 		830175AB2A44AC87008CAD8B /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				830175AA2A44AC87008CAD8B /* FullyImmersiveMetal.app */,
+				830175AA2A44AC87008CAD8B /* ImmersiveMetal.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		830175AC2A44AC87008CAD8B /* FullyImmersiveMetal */ = {
+		830175AC2A44AC87008CAD8B /* ImmersiveMetal */ = {
 			isa = PBXGroup;
 			children = (
 				8394CE902A44E44F005A8B04 /* ShaderTypes.h */,
@@ -103,7 +103,7 @@
 				8394CE872A44DB1D005A8B04 /* studio.hdr */,
 				830175B92A44AC87008CAD8B /* Assets.xcassets */,
 			);
-			path = FullyImmersiveMetal;
+			path = ImmersiveMetal;
 			sourceTree = "<group>";
 		};
 		830175C72A44BE8C008CAD8B /* Frameworks */ = {
@@ -122,9 +122,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		830175A92A44AC87008CAD8B /* FullyImmersiveMetal */ = {
+		830175A92A44AC87008CAD8B /* ImmersiveMetal */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 830175C02A44AC87008CAD8B /* Build configuration list for PBXNativeTarget "FullyImmersiveMetal" */;
+			buildConfigurationList = 830175C02A44AC87008CAD8B /* Build configuration list for PBXNativeTarget "ImmersiveMetal" */;
 			buildPhases = (
 				830175A62A44AC87008CAD8B /* Sources */,
 				830175A72A44AC87008CAD8B /* Frameworks */,
@@ -134,11 +134,11 @@
 			);
 			dependencies = (
 			);
-			name = FullyImmersiveMetal;
+			name = ImmersiveMetal;
 			packageProductDependencies = (
 			);
 			productName = FullyImmersiveMetal;
-			productReference = 830175AA2A44AC87008CAD8B /* FullyImmersiveMetal.app */;
+			productReference = 830175AA2A44AC87008CAD8B /* ImmersiveMetal.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -157,7 +157,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 830175A52A44AC87008CAD8B /* Build configuration list for PBXProject "FullyImmersiveMetal" */;
+			buildConfigurationList = 830175A52A44AC87008CAD8B /* Build configuration list for PBXProject "ImmersiveMetal" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -170,7 +170,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				830175A92A44AC87008CAD8B /* FullyImmersiveMetal */,
+				830175A92A44AC87008CAD8B /* ImmersiveMetal */,
 			);
 		};
 /* End PBXProject section */
@@ -343,11 +343,11 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.metalbyexample.FullyImmersiveMetal;
+				PRODUCT_BUNDLE_IDENTIFIER = com.metalbyexample.ImmersiveMetal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "xros xrsimulator";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = FullyImmersiveMetal/Bridging.h;
+				SWIFT_OBJC_BRIDGING_HEADER = ImmersiveMetal/Bridging.h;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
@@ -372,11 +372,11 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.metalbyexample.FullyImmersiveMetal;
+				PRODUCT_BUNDLE_IDENTIFIER = com.metalbyexample.ImmersiveMetal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "xros xrsimulator";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = FullyImmersiveMetal/Bridging.h;
+				SWIFT_OBJC_BRIDGING_HEADER = ImmersiveMetal/Bridging.h;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 			};
@@ -385,7 +385,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		830175A52A44AC87008CAD8B /* Build configuration list for PBXProject "FullyImmersiveMetal" */ = {
+		830175A52A44AC87008CAD8B /* Build configuration list for PBXProject "ImmersiveMetal" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				830175BE2A44AC87008CAD8B /* Debug */,
@@ -394,7 +394,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		830175C02A44AC87008CAD8B /* Build configuration list for PBXNativeTarget "FullyImmersiveMetal" */ = {
+		830175C02A44AC87008CAD8B /* Build configuration list for PBXNativeTarget "ImmersiveMetal" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				830175C12A44AC87008CAD8B /* Debug */,
