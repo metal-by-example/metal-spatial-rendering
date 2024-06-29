@@ -15,12 +15,14 @@ struct VertexOut {
     float4 position [[position]];
     float3 modelNormal;
     float2 texCoords;
+    float3 worldViewDirection;
 };
 
 struct LayeredVertexOut {
     float4 position [[position]];
     float3 modelNormal;
     float2 texCoords;
+    float3 worldViewDirection;
     uint renderTargetIndex [[render_target_array_index]];
     uint viewportIndex [[viewport_array_index]];
 };
@@ -29,6 +31,7 @@ struct EnvironmentFragmentIn {
     float4 position [[position]];
     float3 modelNormal;
     float2 texCoords;
+    float3 worldViewDirection;
     uint renderTargetIndex [[render_target_array_index]];
     uint viewportIndex [[viewport_array_index]];
 };
@@ -48,6 +51,7 @@ LayeredVertexOut vertex_environment(VertexIn in [[stage_in]],
     out.position = pose.projectionMatrix * pose.viewMatrix * worldPosition;
     out.modelNormal = -in.normal;
     out.texCoords = in.texCoords;
+    out.worldViewDirection = normalize(worldPosition.xyz);
 
     if (useLayeredRendering) {
         out.renderTargetIndex = amplificationID;
@@ -70,6 +74,7 @@ VertexOut vertex_dedicated_environment(VertexIn in [[stage_in]],
     out.position = pose.projectionMatrix * pose.viewMatrix * worldPosition;
     out.modelNormal = -in.normal;
     out.texCoords = in.texCoords;
+    out.worldViewDirection = normalize(worldPosition.xyz);
     return out;
 }
 
@@ -83,12 +88,19 @@ static float2 EquirectUVFromCubeDirection(float3 v) {
 
 [[fragment]]
 half4 fragment_environment(EnvironmentFragmentIn in [[stage_in]],
+                           constant EnvironmentConstants &environment,
                            texture2d<half, access::sample> environmentTexture [[texture(0)]])
 {
     constexpr sampler environmentSampler(coord::normalized, filter::linear, mip_filter::none, address::repeat);
 
+    float3 V = normalize(in.worldViewDirection);
+    float forwardness = -V.z;
+    float cutoffStart = environment.portalCutoffAngles[0];
+    float cutoffEnd = environment.portalCutoffAngles[1];
+    half portalOpacity = half(1.0f - smoothstep(cutoffStart, cutoffEnd, forwardness));
+
     float3 N = normalize(in.modelNormal);
     float2 texCoords = EquirectUVFromCubeDirection(N);
     half4 color = environmentTexture.sample(environmentSampler, texCoords);
-    return color;
+    return half4(color.rgb * portalOpacity, portalOpacity);
 }

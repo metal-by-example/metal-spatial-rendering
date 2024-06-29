@@ -16,8 +16,9 @@ static simd_float4x4 matrix_float4x4_from_double4x4(simd_double4x4 m) {
                        simd_make_float4(m.columns[3][0], m.columns[3][1], m.columns[3][2], m.columns[3][3]));
 }
 
-SpatialRenderer::SpatialRenderer(cp_layer_renderer_t layerRenderer) :
+SpatialRenderer::SpatialRenderer(cp_layer_renderer_t layerRenderer, SRConfiguration *configuration) :
     _layerRenderer { layerRenderer },
+    _configuration { configuration },
     _sceneTime(0.0),
     _lastRenderTime(CACurrentMediaTime())
 {
@@ -130,6 +131,12 @@ void SpatialRenderer::drawAndPresent(cp_frame_t frame, cp_drawable_t drawable) {
                                                simd_make_float4(0.0f, estimatedHeadHeight, -1.5f, 1.0f));
     _globeMesh->setModelMatrix(modelTransform);
 
+    if (_configuration.immersionStyle == SRImmersionStyleMixed) {
+        _environmentMesh->setCutoffAngle(_configuration.portalCutoffAngle);
+    } else {
+        _environmentMesh->setCutoffAngle(180);
+    }
+
     id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
     
     size_t viewCount = cp_drawable_get_view_count(drawable);
@@ -206,6 +213,10 @@ MTLRenderPassDescriptor* SpatialRenderer::createRenderPassDescriptor(cp_drawable
     MTLRenderPassDescriptor *passDescriptor = [[MTLRenderPassDescriptor alloc] init];
 
     passDescriptor.colorAttachments[0].texture = cp_drawable_get_color_texture(drawable, index);
+    if (_configuration.immersionStyle == SRImmersionStyleMixed) {
+        passDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+        passDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 0.0);
+    }
     passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
 
     passDescriptor.depthAttachment.texture = cp_drawable_get_depth_texture(drawable, index);

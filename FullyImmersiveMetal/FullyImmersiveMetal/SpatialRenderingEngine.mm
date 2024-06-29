@@ -9,17 +9,28 @@
 #import <ARKit/ARKit.h>
 #import <Spatial/Spatial.h>
 
+@implementation SRConfiguration
+
+- (instancetype)initWithImmersionStyle:(SRImmersionStyle)immersionStyle {
+    if (self = [super init]) {
+        _immersionStyle = immersionStyle;
+        _portalCutoffAngle = 180.0f;
+    }
+    return self;
+}
+
+- (instancetype)init {
+    return [self initWithImmersionStyle:SRImmersionStyleFull];
+}
+
+@end
+
 class SpatialRenderingEngine {
 public:
-    static void run(cp_layer_renderer_t layerRenderer) {
-        auto engine = std::make_unique<SpatialRenderingEngine>(layerRenderer);
-        engine->runLoop();
-    }
-
-    SpatialRenderingEngine(cp_layer_renderer_t layerRenderer) :
+    SpatialRenderingEngine(cp_layer_renderer_t layerRenderer, SRConfiguration *configuration) :
         _layerRenderer(layerRenderer)
     {
-        _renderer = std::make_unique<SpatialRenderer>(layerRenderer);
+        _renderer = std::make_unique<SpatialRenderer>(layerRenderer, configuration);
         runWorldTrackingARSession();
     }
 
@@ -114,29 +125,34 @@ private:
 
 @interface RenderThread : NSThread {
     cp_layer_renderer_t _layerRenderer;
+    std::unique_ptr<SpatialRenderingEngine> _engine;
 }
 
-- (instancetype)initWithLayerRenderer:(cp_layer_renderer_t)layerRenderer;
+- (instancetype)initWithLayerRenderer:(cp_layer_renderer_t)layerRenderer
+                        configuration:(SRConfiguration *)configuration;
 
 @end
 
 @implementation RenderThread
 
-- (instancetype)initWithLayerRenderer:(cp_layer_renderer_t)layerRenderer {
+- (instancetype)initWithLayerRenderer:(cp_layer_renderer_t)layerRenderer
+                        configuration:(SRConfiguration *)configuration
+{
     if (self = [self init]) {
         _layerRenderer = layerRenderer;
+        _engine = std::make_unique<SpatialRenderingEngine>(layerRenderer, configuration);
     }
     return self;
 }
 
 - (void)main {
-    SpatialRenderingEngine::run(_layerRenderer);
+    _engine->runLoop();
 }
 
 @end
 
-void SpatialRenderer_InitAndRun(cp_layer_renderer_t layerRenderer) {
-    RenderThread *renderThread = [[RenderThread alloc] initWithLayerRenderer:layerRenderer];
+void SpatialRenderer_InitAndRun(cp_layer_renderer_t layerRenderer, SRConfiguration *configuration) {
+    RenderThread *renderThread = [[RenderThread alloc] initWithLayerRenderer:layerRenderer configuration:configuration];
     renderThread.name = @"Spatial Renderer Thread";
     [renderThread start];
 }

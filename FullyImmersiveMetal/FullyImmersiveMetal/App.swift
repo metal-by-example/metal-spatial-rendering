@@ -19,16 +19,21 @@ struct MetalLayerConfiguration: CompositorLayerConfiguration {
 
 @main
 struct FullyImmersiveMetalApp: App {
+    @State var immersionStyle: (any ImmersionStyle) = FullImmersionStyle.full
+    @State var rendererConfig = SRConfiguration(immersionStyle: .full)
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView($immersionStyle, rendererConfig)
+                .frame(minWidth: 480, maxWidth: 480, minHeight: 200, maxHeight: 320)
         }
         .windowResizability(.contentSize)
 
         ImmersiveSpace(id: "ImmersiveSpace") {
             CompositorLayer(configuration: MetalLayerConfiguration()) { layerRenderer in
-                SpatialRenderer_InitAndRun(layerRenderer)
+                SpatialRenderer_InitAndRun(layerRenderer, rendererConfig)
             }
-        }.immersionStyle(selection: .constant(.full), in: .full)
+        }
+        .immersionStyle(selection: $immersionStyle, in: .mixed, .full)
     }
 }

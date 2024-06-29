@@ -36,6 +36,11 @@ public:
     SpatialEnvironmentMesh(NSString *imageName, CGFloat radius, id<MTLDevice> device);
     void draw(id<MTLRenderCommandEncoder> renderCommandEncoder, PoseConstants *poseConstants, size_t poseCount) override;
 
+    float cutoffAngle() const;
+    void setCutoffAngle(float cutoffAngle);
+
 private:
     simd_float4x4 _environmentRotation;
+    float _cutoffAngle = 180.0f;
+    float _cutoffEdgeWidth = 0.125f;
 };

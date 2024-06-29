@@ -14,7 +14,8 @@
 		830175CA2A44BE8C008CAD8B /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 830175C82A44BE8C008CAD8B /* Metal.framework */; };
 		830175CB2A44BE8C008CAD8B /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 830175C92A44BE8C008CAD8B /* MetalKit.framework */; };
 		830175CD2A44BE96008CAD8B /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 830175CC2A44BE96008CAD8B /* Foundation.framework */; };
-		830175CF2A44BE9B008CAD8B /* CompositorServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 830175CE2A44BE9B008CAD8B /* CompositorServices.framework */; };
+		836683022C3099A90043D773 /* RealityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 836683012C3099A90043D773 /* RealityKit.framework */; };
+		836683032C309ADE0043D773 /* CompositorServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 830175CE2A44BE9B008CAD8B /* CompositorServices.framework */; };
 		8394CE862A44D36D005A8B04 /* SceneShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 8394CE852A44D36D005A8B04 /* SceneShaders.metal */; };
 		8394CE882A44DB1D005A8B04 /* studio.hdr in Resources */ = {isa = PBXBuildFile; fileRef = 8394CE872A44DB1D005A8B04 /* studio.hdr */; };
 		8394CE8A2A44DD41005A8B04 /* EnvironmentShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 8394CE892A44DD41005A8B04 /* EnvironmentShaders.metal */; };
@@ -36,6 +37,7 @@
 		830175C92A44BE8C008CAD8B /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		830175CC2A44BE96008CAD8B /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		830175CE2A44BE9B008CAD8B /* CompositorServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CompositorServices.framework; path = System/Library/Frameworks/CompositorServices.framework; sourceTree = SDKROOT; };
+		836683012C3099A90043D773 /* RealityKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = RealityKit.framework; path = System/Library/Frameworks/RealityKit.framework; sourceTree = SDKROOT; };
 		8394CE852A44D36D005A8B04 /* SceneShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = SceneShaders.metal; sourceTree = "<group>"; };
 		8394CE872A44DB1D005A8B04 /* studio.hdr */ = {isa = PBXFileReference; lastKnownFileType = file; path = studio.hdr; sourceTree = "<group>"; };
 		8394CE892A44DD41005A8B04 /* EnvironmentShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = EnvironmentShaders.metal; sourceTree = "<group>"; };
@@ -53,10 +55,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				836683022C3099A90043D773 /* RealityKit.framework in Frameworks */,
+				836683032C309ADE0043D773 /* CompositorServices.framework in Frameworks */,
 				830175CA2A44BE8C008CAD8B /* Metal.framework in Frameworks */,
 				830175CD2A44BE96008CAD8B /* Foundation.framework in Frameworks */,
 				830175CB2A44BE8C008CAD8B /* MetalKit.framework in Frameworks */,
-				830175CF2A44BE9B008CAD8B /* CompositorServices.framework in Frameworks */,
 				8394CE8C2A44E2D2005A8B04 /* ModelIO.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -106,6 +109,7 @@
 		830175C72A44BE8C008CAD8B /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				836683012C3099A90043D773 /* RealityKit.framework */,
 				8394CE8B2A44E2D2005A8B04 /* ModelIO.framework */,
 				830175CE2A44BE9B008CAD8B /* CompositorServices.framework */,
 				830175CC2A44BE96008CAD8B /* Foundation.framework */,

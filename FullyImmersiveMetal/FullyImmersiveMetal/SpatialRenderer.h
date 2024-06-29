@@ -11,7 +11,8 @@
 
 class SpatialRenderer {
 public:
-    SpatialRenderer(cp_layer_renderer_t layerRenderer);
+    SpatialRenderer(cp_layer_renderer_t layerRenderer, SRConfiguration *configuration);
+
     void drawAndPresent(cp_frame_t frame, cp_drawable_t drawable);
 
 private:
@@ -30,6 +31,7 @@ private:
     cp_layer_renderer_t _layerRenderer;
     std::unique_ptr<TexturedMesh> _globeMesh;
     std::unique_ptr<SpatialEnvironmentMesh> _environmentMesh;
+    SRConfiguration *_configuration;
     CFTimeInterval _sceneTime;
     CFTimeInterval _lastRenderTime;
 };
