@@ -336,6 +336,7 @@
 				DEVELOPMENT_TEAM = RHRJ88BAB5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Immersive Metal";
 				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to get pose estimates for immersive AR experiences";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -365,6 +366,7 @@
 				DEVELOPMENT_TEAM = RHRJ88BAB5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Immersive Metal";
 				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to get pose estimates for immersive AR experiences";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
