@@ -1,4 +1,3 @@
-
 #include "SpatialRenderer.h"
 #include "Mesh.h"
 #include "ShaderTypes.h"
@@ -27,8 +26,6 @@ SpatialRenderer::SpatialRenderer(cp_layer_renderer_t layerRenderer) :
 
     makeResources();
 
-    cp_layer_renderer_configuration_t layerConfiguration = cp_layer_renderer_get_configuration(layerRenderer);
-    _layerRendererLayout = cp_layer_renderer_configuration_get_layout(layerConfiguration);
     makeRenderPipelines();
 }
 
@@ -49,7 +46,8 @@ void SpatialRenderer::makeResources() {
 void SpatialRenderer::makeRenderPipelines() {
     NSError *error = nil;
     cp_layer_renderer_configuration_t layerConfiguration = cp_layer_renderer_get_configuration(_layerRenderer);
-    
+    cp_layer_renderer_layout layout = cp_layer_renderer_configuration_get_layout(layerConfiguration);
+
     MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];
     pipelineDescriptor.colorAttachments[0].pixelFormat = cp_layer_renderer_configuration_get_color_format(layerConfiguration);
     pipelineDescriptor.depthAttachmentPixelFormat = cp_layer_renderer_configuration_get_depth_format(layerConfiguration);
@@ -57,34 +55,56 @@ void SpatialRenderer::makeRenderPipelines() {
     id<MTLLibrary> library = [_device newDefaultLibrary];
     id<MTLFunction> vertexFunction, fragmentFunction;
     
+    BOOL layoutIsDedicated = (layout == cp_layer_renderer_layout_dedicated);
+    BOOL layoutIsLayered = (layout == cp_layer_renderer_layout_layered);
+
+    MTLFunctionConstantValues *functionConstants = [MTLFunctionConstantValues new];
+    [functionConstants setConstantValue:&layoutIsLayered type:MTLDataTypeBool withName:@"useLayeredRendering"];
+
     {
-        vertexFunction = [library newFunctionWithName:@"vertex_main"];
+        vertexFunction = [library newFunctionWithName: layoutIsDedicated ? @"vertex_dedicated_main" : @"vertex_main"
+                                       constantValues:functionConstants
+                                                error:&error];
         fragmentFunction = [library newFunctionWithName:@"fragment_main"];
         pipelineDescriptor.vertexFunction = vertexFunction;
         pipelineDescriptor.fragmentFunction = fragmentFunction;
         pipelineDescriptor.vertexDescriptor = _globeMesh->vertexDescriptor();
-        pipelineDescriptor.inputPrimitiveTopology = MTLPrimitiveTopologyClassTriangle;
-        
+        if (!layoutIsDedicated) {
+            pipelineDescriptor.inputPrimitiveTopology = MTLPrimitiveTopologyClassTriangle;
+            pipelineDescriptor.maxVertexAmplificationCount = 2;
+        }
+
         _contentRenderPipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
+        if (_contentRenderPipelineState == nil) {
+            NSLog(@"Error occurred when creating render pipeline state: %@", error);
+        }
     }
     {
-        vertexFunction = [library newFunctionWithName:@"vertex_environment"];
+        vertexFunction = [library newFunctionWithName:layoutIsDedicated ? @"vertex_dedicated_environment" : @"vertex_environment"
+                                       constantValues:functionConstants
+                                                error:&error];
         fragmentFunction = [library newFunctionWithName:@"fragment_environment"];
         pipelineDescriptor.vertexFunction = vertexFunction;
         pipelineDescriptor.fragmentFunction = fragmentFunction;
         pipelineDescriptor.vertexDescriptor = _environmentMesh->vertexDescriptor();
-        pipelineDescriptor.inputPrimitiveTopology = MTLPrimitiveTopologyClassTriangle;
-        
+        if (!layoutIsDedicated) {
+            pipelineDescriptor.inputPrimitiveTopology = MTLPrimitiveTopologyClassTriangle;
+            pipelineDescriptor.maxVertexAmplificationCount = 2;
+        }
+
         _environmentRenderPipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
+        if (_environmentRenderPipelineState == nil) {
+            NSLog(@"Error occurred when creating render pipeline state: %@", error);
+        }
     }
     
     MTLDepthStencilDescriptor *depthDescriptor = [MTLDepthStencilDescriptor new];
     depthDescriptor.depthWriteEnabled = YES;
-    depthDescriptor.depthCompareFunction = MTLCompareFunctionLess;
+    depthDescriptor.depthCompareFunction = MTLCompareFunctionGreater;
     _contentDepthStencilState = [_device newDepthStencilStateWithDescriptor:depthDescriptor];
 
-    depthDescriptor.depthWriteEnabled = NO;
-    depthDescriptor.depthCompareFunction = MTLCompareFunctionLess;
+    depthDescriptor.depthWriteEnabled = YES;
+    depthDescriptor.depthCompareFunction = MTLCompareFunctionGreater;
     _backgroundDepthStencilState = [_device newDepthStencilStateWithDescriptor:depthDescriptor];
 }
 
@@ -92,6 +112,9 @@ void SpatialRenderer::drawAndPresent(cp_frame_t frame, cp_drawable_t drawable) {
     CFTimeInterval renderTime = CACurrentMediaTime();
     CFTimeInterval timestep = MIN(renderTime - _lastRenderTime, 1.0 / 60.0);
     _sceneTime += timestep;
+
+    cp_layer_renderer_configuration_t layerConfiguration = cp_layer_renderer_get_configuration(_layerRenderer);
+    cp_layer_renderer_layout layout = cp_layer_renderer_configuration_get_layout(layerConfiguration);
 
 #if TARGET_OS_SIMULATOR
     const float estimatedHeadHeight = 0.0;
@@ -111,31 +134,22 @@ void SpatialRenderer::drawAndPresent(cp_frame_t frame, cp_drawable_t drawable) {
     
     size_t viewCount = cp_drawable_get_view_count(drawable);
     
-    std::vector<MTLViewport> viewports;
-    viewports.reserve(viewCount);
-    
-    std::vector<PoseConstants> poseConstants;
-    poseConstants.reserve(viewCount);
-    
-    std::vector<PoseConstants> poseConstantsForEnvironment;
-    poseConstantsForEnvironment.resize(viewCount);
-    
-    LayerConstants layerConstants;
-    
+    std::array<MTLViewport, 2> viewports {};
+    std::array<PoseConstants, 2> poseConstants {};
+    std::array<PoseConstants, 2> poseConstantsForEnvironment {};
     for (int i = 0; i < viewCount; ++i) {
         viewports[i] = viewportForViewIndex(drawable, i);
         
         poseConstants[i] = poseConstantsForViewIndex(drawable, i);
         
         poseConstantsForEnvironment[i] = poseConstantsForViewIndex(drawable, i);
-        // Remove the translational part of the view matrix to make the environment stay "infinitely" far away
+        // Remove the translational part of the view matrix to make the environment stay unreachably far away
         poseConstantsForEnvironment[i].viewMatrix.columns[3] = simd_make_float4(0.0, 0.0, 0.0, 1.0);
     }
     
-    if (_layerRendererLayout == cp_layer_renderer_layout_dedicated) {
-        layerConstants.layerCount = 1;
-        layerConstants.viewportCount = 1;
-        
+    if (layout == cp_layer_renderer_layout_dedicated) {
+        // When rendering with a "dedicated" layout, we draw each eye's view to a separate texture.
+        // Since we can't switch render targets within a pass, we render one pass per view.
         for (int i = 0; i < viewCount; ++i) {
             MTLRenderPassDescriptor *renderPassDescriptor = createRenderPassDescriptor(drawable, i);
             id<MTLRenderCommandEncoder> renderCommandEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
@@ -145,45 +159,38 @@ void SpatialRenderer::drawAndPresent(cp_frame_t frame, cp_drawable_t drawable) {
             [renderCommandEncoder setFrontFacingWinding:MTLWindingClockwise];
             [renderCommandEncoder setDepthStencilState:_backgroundDepthStencilState];
             [renderCommandEncoder setRenderPipelineState:_environmentRenderPipelineState];
-            _environmentMesh->draw(renderCommandEncoder, &poseConstantsForEnvironment[i], &layerConstants, 1);
-            
+            _environmentMesh->draw(renderCommandEncoder, &poseConstantsForEnvironment[i], 1);
+
             [renderCommandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
             [renderCommandEncoder setDepthStencilState:_contentDepthStencilState];
             [renderCommandEncoder setRenderPipelineState:_contentRenderPipelineState];
-            _globeMesh->draw(renderCommandEncoder, &poseConstants[i], &layerConstants, 1);
-            
+            _globeMesh->draw(renderCommandEncoder, &poseConstants[i], 1);
+
             [renderCommandEncoder endEncoding];
         }
-    }
-    else {
-        if (_layerRendererLayout == cp_layer_renderer_layout_layered) {
-            layerConstants.layerCount = (unsigned)viewCount;
-            layerConstants.viewportCount = 1;
-        }
-        else if (_layerRendererLayout == cp_layer_renderer_layout_shared) {
-            layerConstants.layerCount = 1;
-            layerConstants.viewportCount = (unsigned)viewCount;
-        }
-        
+    } else {
+        // When rendering in a "shared" or "layered" layout, we use vertex amplification to efficiently
+        // run the vertex pipeline for each view. The "shared" layout uses the viewport array to write
+        // each view to a distinct region of a single render target, while the "layered" layout writes
+        // each view to a separate slice of the render target array texture.
         MTLRenderPassDescriptor *renderPassDescriptor = createRenderPassDescriptor(drawable, 0);
         id<MTLRenderCommandEncoder> renderCommandEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
-        
-        if (_layerRendererLayout == cp_layer_renderer_layout_shared) {
-            [renderCommandEncoder setViewports: &viewports[0] count: layerConstants.viewportCount];
-        }
-        
+
+        [renderCommandEncoder setViewports:viewports.data() count:viewCount];
+        [renderCommandEncoder setVertexAmplificationCount:viewCount viewMappings:nil];
+
         [renderCommandEncoder setCullMode:MTLCullModeBack];
 
         [renderCommandEncoder setFrontFacingWinding:MTLWindingClockwise];
         [renderCommandEncoder setDepthStencilState:_backgroundDepthStencilState];
         [renderCommandEncoder setRenderPipelineState:_environmentRenderPipelineState];
-        _environmentMesh->draw(renderCommandEncoder, &poseConstantsForEnvironment[0], &layerConstants, viewCount);
-        
+        _environmentMesh->draw(renderCommandEncoder, poseConstantsForEnvironment.data(), viewCount);
+
         [renderCommandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
         [renderCommandEncoder setDepthStencilState:_contentDepthStencilState];
         [renderCommandEncoder setRenderPipelineState:_contentRenderPipelineState];
-        _globeMesh->draw(renderCommandEncoder, &poseConstants[0], &layerConstants, viewCount);
-        
+        _globeMesh->draw(renderCommandEncoder, poseConstants.data(), viewCount);
+
         [renderCommandEncoder endEncoding];
     }
 
@@ -193,22 +200,35 @@ void SpatialRenderer::drawAndPresent(cp_frame_t frame, cp_drawable_t drawable) {
 }
 
 MTLRenderPassDescriptor* SpatialRenderer::createRenderPassDescriptor(cp_drawable_t drawable, size_t index) {
+    cp_layer_renderer_configuration_t layerConfiguration = cp_layer_renderer_get_configuration(_layerRenderer);
+    cp_layer_renderer_layout layout = cp_layer_renderer_configuration_get_layout(layerConfiguration);
+
     MTLRenderPassDescriptor *passDescriptor = [[MTLRenderPassDescriptor alloc] init];
 
     passDescriptor.colorAttachments[0].texture = cp_drawable_get_color_texture(drawable, index);
     passDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
 
     passDescriptor.depthAttachment.texture = cp_drawable_get_depth_texture(drawable, index);
+    passDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
+    passDescriptor.depthAttachment.clearDepth = 0.0;
     passDescriptor.depthAttachment.storeAction = MTLStoreActionStore;
 
-    if (_layerRendererLayout == cp_layer_renderer_layout_layered) {
-        passDescriptor.renderTargetArrayLength = cp_drawable_get_view_count(drawable);
+    switch (layout) {
+        case cp_layer_renderer_layout_layered:
+            passDescriptor.renderTargetArrayLength = cp_drawable_get_view_count(drawable);
+            break;
+        case cp_layer_renderer_layout_shared:
+            // Even though we don't use an array texture as the render target in "shared" layout, we're 
+            // obligated to set the render target array length because it is set by the vertex shader.
+            passDescriptor.renderTargetArrayLength = 1;
+            break;
+        case cp_layer_renderer_layout_dedicated:
+            break;
     }
-    else {
-        passDescriptor.renderTargetArrayLength = 1;
+
+    if (cp_drawable_get_rasterization_rate_map_count(drawable) > 0) {
+        passDescriptor.rasterizationRateMap = cp_drawable_get_rasterization_rate_map(drawable, index);
     }
-    
-    passDescriptor.rasterizationRateMap = cp_drawable_get_rasterization_rate_map(drawable, index);
 
     return passDescriptor;
 }

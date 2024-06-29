@@ -1,7 +1,8 @@
 #pragma once
 
-#include "ShaderTypes.h"
 #include "Mesh.h"
+#include "ShaderTypes.h"
+#include "SpatialRenderingEngine.h"
 
 #include <memory>
 
@@ -27,7 +28,6 @@ private:
     id<MTLDepthStencilState> _contentDepthStencilState;
     id<MTLDepthStencilState> _backgroundDepthStencilState;
     cp_layer_renderer_t _layerRenderer;
-    cp_layer_renderer_layout _layerRendererLayout;
     std::unique_ptr<TexturedMesh> _globeMesh;
     std::unique_ptr<SpatialEnvironmentMesh> _environmentMesh;
     CFTimeInterval _sceneTime;

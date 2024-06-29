@@ -2,6 +2,8 @@
 #include <metal_stdlib>
 using namespace metal;
 
+constant bool useLayeredRendering [[function_constant(0)]];
+
 struct VertexIn {
     float3 position  [[attribute(0)]];
     float3 normal    [[attribute(1)]];
@@ -12,8 +14,22 @@ struct VertexOut {
     float4 position [[position]];
     float3 viewNormal;
     float2 texCoords;
-    uint layer [[ render_target_array_index ]];
-    uint viewport [[ viewport_array_index ]];
+};
+
+struct LayeredVertexOut {
+    float4 position [[position]];
+    float3 viewNormal;
+    float2 texCoords;
+    uint renderTargetIndex [[render_target_array_index]];
+    uint viewportIndex [[viewport_array_index]];
+};
+
+struct FragmentIn {
+    float4 position [[position]];
+    float3 viewNormal;
+    float2 texCoords;
+    uint renderTargetIndex [[render_target_array_index]];
+    uint viewportIndex [[viewport_array_index]];
 };
 
 struct PoseConstants {
@@ -25,40 +41,46 @@ struct InstanceConstants {
     float4x4 modelMatrix;
 };
 
-struct LayerConstants {
-    unsigned layerCount, viewportCount;
-};
-
 [[vertex]]
-VertexOut vertex_main(VertexIn in [[stage_in]],
-                      constant PoseConstants *poses [[buffer(1)]],
-                      constant InstanceConstants &instance [[buffer(2)]],
-                      constant LayerConstants &layer [[buffer(3)]],
-                      const uint instance_id [[ instance_id ]])
+LayeredVertexOut vertex_main(VertexIn in [[stage_in]],
+                             constant PoseConstants *poses [[buffer(1)]],
+                             constant InstanceConstants &instance [[buffer(2)]],
+                             uint amplificationID [[amplification_id]])
 {
-    VertexOut out;
+    constant auto &pose = poses[amplificationID];
     
-    const constant auto& pose = poses[instance_id];
-        
+    LayeredVertexOut out;
     out.position = pose.projectionMatrix * pose.viewMatrix * instance.modelMatrix * float4(in.position, 1.0f);
     out.viewNormal = (pose.viewMatrix * instance.modelMatrix * float4(in.normal, 0.0f)).xyz;
     out.texCoords = in.texCoords;
     out.texCoords.x = 1.0f - out.texCoords.x; // Flip uvs horizontally to match Model I/O
-    out.layer = instance_id % layer.layerCount;
-    out.viewport = instance_id % layer.viewportCount;
+    if (useLayeredRendering) {
+        out.renderTargetIndex = amplificationID;
+    }
+    out.viewportIndex = amplificationID;
+    return out;
+}
+
+[[vertex]]
+VertexOut vertex_dedicated_main(VertexIn in [[stage_in]],
+                                constant PoseConstants *poses [[buffer(1)]],
+                                constant InstanceConstants &instance [[buffer(2)]])
+{
+    constant auto &pose = poses[0];
+    
+    VertexOut out;
+    out.position = pose.projectionMatrix * pose.viewMatrix * instance.modelMatrix * float4(in.position, 1.0f);
+    out.viewNormal = (pose.viewMatrix * instance.modelMatrix * float4(in.normal, 0.0f)).xyz;
+    out.texCoords = in.texCoords;
+    out.texCoords.x = 1.0f - out.texCoords.x; // Flip uvs horizontally to match Model I/O
     return out;
 }
 
 [[fragment]]
-float4 fragment_main(VertexOut in [[stage_in]],
-                            texture2d<float> texture [[texture(0)]])
+half4 fragment_main(FragmentIn in [[stage_in]],
+                    texture2d<half, access::sample> texture [[texture(0)]])
 {
-    constexpr sampler environmentSampler(coord::normalized,
-                                         filter::linear,
-                                         mip_filter::none,
-                                         address::repeat);
-
-    //float3 N = normalize(in.viewNormal);
-    float4 color = texture.sample(environmentSampler, in.texCoords);
+    constexpr sampler environmentSampler(coord::normalized, filter::linear, mip_filter::none, address::repeat);
+    half4 color = texture.sample(environmentSampler, in.texCoords);
     return color;
 }

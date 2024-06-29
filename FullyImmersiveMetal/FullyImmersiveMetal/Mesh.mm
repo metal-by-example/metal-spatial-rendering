@@ -61,29 +61,21 @@ TexturedMesh::TexturedMesh(MDLMesh *mdlMesh, NSString *imageName, id<MTLDevice> 
     _mesh = [[MTKMesh alloc] initWithMesh:mdlMesh device:device error:&error];
 }
 
-void TexturedMesh::draw(id<MTLRenderCommandEncoder> renderCommandEncoder, 
-                        const PoseConstants *poseConstants, const LayerConstants *layerConstants,
-                        NSUInteger instanceCount) {
+void TexturedMesh::draw(id<MTLRenderCommandEncoder> renderCommandEncoder, PoseConstants *poseConstants, size_t poseCount) {
     InstanceConstants instanceConstants;
-    instanceConstants.modelMatrix  = modelMatrix();
+    instanceConstants.modelMatrix = modelMatrix();
 
     MTKSubmesh *submesh = _mesh.submeshes.firstObject;
     MTKMeshBuffer *vertexBuffer = _mesh.vertexBuffers.firstObject;
-    [renderCommandEncoder setVertexBuffer:vertexBuffer.buffer
-                                   offset:vertexBuffer.offset
-                                  atIndex:0];
-    [renderCommandEncoder setVertexBytes:poseConstants length:sizeof(PoseConstants) * instanceCount atIndex:1];
+    [renderCommandEncoder setVertexBuffer:vertexBuffer.buffer offset:vertexBuffer.offset atIndex:0];
+    [renderCommandEncoder setVertexBytes:poseConstants length:sizeof(PoseConstants) * poseCount atIndex:1];
     [renderCommandEncoder setVertexBytes:&instanceConstants length:sizeof(instanceConstants) atIndex:2];
-    [renderCommandEncoder setVertexBytes:layerConstants length:sizeof(LayerConstants) atIndex:3];
     [renderCommandEncoder setFragmentTexture:_texture atIndex:0];
     [renderCommandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                                      indexCount:submesh.indexCount
                                       indexType:submesh.indexType
                                     indexBuffer:submesh.indexBuffer.buffer
-                              indexBufferOffset:submesh.indexBuffer.offset
-                                  instanceCount:instanceCount
-                                     baseVertex:0
-                                   baseInstance:0];
+                              indexBufferOffset:submesh.indexBuffer.offset];
 }
 
 SpatialEnvironmentMesh::SpatialEnvironmentMesh(NSString *imageName, CGFloat radius, id<MTLDevice> device) :
@@ -123,28 +115,20 @@ SpatialEnvironmentMesh::SpatialEnvironmentMesh(NSString *imageName, CGFloat radi
     _mesh = [[MTKMesh alloc] initWithMesh:mdlMesh device:device error:&error];
 }
 
-void SpatialEnvironmentMesh::draw(id<MTLRenderCommandEncoder> renderCommandEncoder,
-                                  const PoseConstants *poseConstants, const LayerConstants *layerConstants,
-                                  NSUInteger instanceCount) {
+void SpatialEnvironmentMesh::draw(id<MTLRenderCommandEncoder> renderCommandEncoder, PoseConstants *poseConstants, size_t poseCount) {
     EnvironmentConstants environmentConstants;
     environmentConstants.modelMatrix = modelMatrix();
     environmentConstants.environmentRotation = matrix_identity_float4x4;
 
     MTKSubmesh *submesh = _mesh.submeshes.firstObject;
     MTKMeshBuffer *vertexBuffer = _mesh.vertexBuffers.firstObject;
-    [renderCommandEncoder setVertexBuffer:vertexBuffer.buffer
-                                   offset:vertexBuffer.offset
-                                  atIndex:0];
-    [renderCommandEncoder setVertexBytes:poseConstants length:sizeof(PoseConstants) * instanceCount atIndex:1];
+    [renderCommandEncoder setVertexBuffer:vertexBuffer.buffer offset:vertexBuffer.offset atIndex:0];
+    [renderCommandEncoder setVertexBytes:poseConstants length:sizeof(PoseConstants) * poseCount atIndex:1];
     [renderCommandEncoder setVertexBytes:&environmentConstants length:sizeof(environmentConstants) atIndex:2];
-    [renderCommandEncoder setVertexBytes:layerConstants length:sizeof(LayerConstants) atIndex:3];
     [renderCommandEncoder setFragmentTexture:_texture atIndex:0];
     [renderCommandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                                      indexCount:submesh.indexCount
                                       indexType:submesh.indexType
                                     indexBuffer:submesh.indexBuffer.buffer
-                              indexBufferOffset:submesh.indexBuffer.offset
-                                  instanceCount:instanceCount
-                                     baseVertex:0
-                                   baseInstance:0];
+                              indexBufferOffset:submesh.indexBuffer.offset];
 }

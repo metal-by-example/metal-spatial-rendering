@@ -4,21 +4,19 @@
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
 
-#include "ShaderTypes.h"
+#import "ShaderTypes.h"
 
 class Mesh {
 public:
     virtual MTLVertexDescriptor *vertexDescriptor() const;
-    virtual void draw(id<MTLRenderCommandEncoder> renderCommandEncoder,
-                      const PoseConstants *poseConstants, const LayerConstants *layerConstants,
-                      NSUInteger instanceCount) = 0;
+    virtual void draw(id<MTLRenderCommandEncoder> renderCommandEncoder, PoseConstants *poseConstants, size_t poseCount) = 0;
 
     simd_float4x4 modelMatrix() const { return _modelMatrix; }
 
     void setModelMatrix(simd_float4x4 m) { _modelMatrix = m; };
 
 private:
-    simd_float4x4 _modelMatrix;
+    simd_float4x4 _modelMatrix = matrix_identity_float4x4;
 };
 
 class TexturedMesh: public Mesh {
@@ -26,9 +24,7 @@ public:
     TexturedMesh();
     TexturedMesh(MDLMesh *mdlMesh, NSString *imageName, id<MTLDevice> device);
 
-    void draw(id<MTLRenderCommandEncoder> renderCommandEncoder,
-              const PoseConstants *poseConstants, const LayerConstants *layerContants,
-              NSUInteger instanceCount) override;
+    void draw(id<MTLRenderCommandEncoder> renderCommandEncoder, PoseConstants *poseConstants, size_t poseCount) override;
 
 protected:
     MTKMesh *_mesh;
@@ -38,9 +34,7 @@ protected:
 class SpatialEnvironmentMesh: public TexturedMesh {
 public:
     SpatialEnvironmentMesh(NSString *imageName, CGFloat radius, id<MTLDevice> device);
-    void draw(id<MTLRenderCommandEncoder> renderCommandEncoder, 
-              const PoseConstants *poseConstants, const LayerConstants *layerContants,
-              NSUInteger instanceCount) override;
+    void draw(id<MTLRenderCommandEncoder> renderCommandEncoder, PoseConstants *poseConstants, size_t poseCount) override;
 
 private:
     simd_float4x4 _environmentRotation;

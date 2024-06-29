@@ -1,4 +1,3 @@
-
 #include "SpatialRenderingEngine.h"
 #include "SpatialRenderer.h"
 #include "ShaderTypes.h"
