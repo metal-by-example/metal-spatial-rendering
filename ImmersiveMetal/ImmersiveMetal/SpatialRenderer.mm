@@ -52,10 +52,10 @@ void SpatialRenderer::makeRenderPipelines() {
     MTLRenderPipelineDescriptor *pipelineDescriptor = [MTLRenderPipelineDescriptor new];
     pipelineDescriptor.colorAttachments[0].pixelFormat = cp_layer_renderer_configuration_get_color_format(layerConfiguration);
     pipelineDescriptor.depthAttachmentPixelFormat = cp_layer_renderer_configuration_get_depth_format(layerConfiguration);
-    
+
     id<MTLLibrary> library = [_device newDefaultLibrary];
     id<MTLFunction> vertexFunction, fragmentFunction;
-    
+
     BOOL layoutIsDedicated = (layout == cp_layer_renderer_layout_dedicated);
     BOOL layoutIsLayered = (layout == cp_layer_renderer_layout_layered);
 
@@ -98,7 +98,7 @@ void SpatialRenderer::makeRenderPipelines() {
             NSLog(@"Error occurred when creating render pipeline state: %@", error);
         }
     }
-    
+
     MTLDepthStencilDescriptor *depthDescriptor = [MTLDepthStencilDescriptor new];
     depthDescriptor.depthWriteEnabled = YES;
     depthDescriptor.depthCompareFunction = MTLCompareFunctionGreater;
@@ -138,29 +138,29 @@ void SpatialRenderer::drawAndPresent(cp_frame_t frame, cp_drawable_t drawable) {
     }
 
     id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
-    
+
     size_t viewCount = cp_drawable_get_view_count(drawable);
-    
+
     std::array<MTLViewport, 2> viewports {};
     std::array<PoseConstants, 2> poseConstants {};
     std::array<PoseConstants, 2> poseConstantsForEnvironment {};
     for (int i = 0; i < viewCount; ++i) {
         viewports[i] = viewportForViewIndex(drawable, i);
-        
+
         poseConstants[i] = poseConstantsForViewIndex(drawable, i);
-        
+
         poseConstantsForEnvironment[i] = poseConstantsForViewIndex(drawable, i);
         // Remove the translational part of the view matrix to make the environment stay unreachably far away
         poseConstantsForEnvironment[i].viewMatrix.columns[3] = simd_make_float4(0.0, 0.0, 0.0, 1.0);
     }
-    
+
     if (layout == cp_layer_renderer_layout_dedicated) {
         // When rendering with a "dedicated" layout, we draw each eye's view to a separate texture.
         // Since we can't switch render targets within a pass, we render one pass per view.
         for (int i = 0; i < viewCount; ++i) {
             MTLRenderPassDescriptor *renderPassDescriptor = createRenderPassDescriptor(drawable, i);
             id<MTLRenderCommandEncoder> renderCommandEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
-            
+
             [renderCommandEncoder setCullMode:MTLCullModeBack];
 
             [renderCommandEncoder setFrontFacingWinding:MTLWindingClockwise];
@@ -229,8 +229,8 @@ MTLRenderPassDescriptor* SpatialRenderer::createRenderPassDescriptor(cp_drawable
             passDescriptor.renderTargetArrayLength = cp_drawable_get_view_count(drawable);
             break;
         case cp_layer_renderer_layout_shared:
-            // Even though we don't use an array texture as the render target in "shared" layout, we're 
-            // obligated to set the render target array length because it is set by the vertex shader.
+            // Even though we don't use an array texture as the render target in "shared" layout, we're
+            // obligated to set the render target array length because the index is set by the vertex shader.
             passDescriptor.renderTargetArrayLength = 1;
             break;
         case cp_layer_renderer_layout_dedicated:
@@ -258,13 +258,23 @@ PoseConstants SpatialRenderer::poseConstantsForViewIndex(cp_drawable_t drawable,
     simd_float4x4 poseTransform = ar_anchor_get_origin_from_anchor_transform(anchor);
 
     cp_view_t view = cp_drawable_get_view(drawable, index);
-    simd_float4 tangents = cp_view_get_tangents(view);
-    simd_float2 depth_range = cp_drawable_get_depth_range(drawable);
-    SPProjectiveTransform3D projectiveTransform = SPProjectiveTransform3DMakeFromTangents(tangents[0], tangents[1],
-                                                                                          tangents[2], tangents[3],
-                                                                                          depth_range[1], depth_range[0],
-                                                                                          true);
-    outPose.projectionMatrix = matrix_float4x4_from_double4x4(projectiveTransform.matrix);
+
+    if (@available(visionOS 2.0, *)) {
+        outPose.projectionMatrix = cp_drawable_compute_projection(drawable,
+                                                                  cp_axis_direction_convention_right_up_back,
+                                                                  index);
+    } else {
+        simd_float4 tangents = cp_view_get_tangents(view);
+        simd_float2 depth_range = cp_drawable_get_depth_range(drawable);
+        SPProjectiveTransform3D projectiveTransform = SPProjectiveTransform3DMakeFromTangents(tangents[0],
+                                                                                              tangents[1],
+                                                                                              tangents[2],
+                                                                                              tangents[3],
+                                                                                              depth_range[1],
+                                                                                              depth_range[0],
+                                                                                              true);
+        outPose.projectionMatrix = matrix_float4x4_from_double4x4(projectiveTransform.matrix);
+    }
 
     simd_float4x4 cameraMatrix = simd_mul(poseTransform, cp_view_get_transform(view));
     outPose.viewMatrix = simd_inverse(cameraMatrix);
